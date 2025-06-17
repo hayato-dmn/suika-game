@@ -4,71 +4,75 @@ const COINS = {
         radius: 20, 
         value: '1円', 
         color: '#C0C0C0',
-        image: './assets/images/1yen.png'
+        image: './1yen.png'
     },
     '5': { 
         radius: 25, 
         value: '5円', 
         color: '#DAA520',
-        image: './assets/images/5yen.png'
+        image: './5yen.png'
     },
     '10': { 
         radius: 30, 
         value: '10円', 
         color: '#CD7F32',
-        image: './assets/images/10yen.png'
+        image: './10yen.png'
     },
     '50': { 
         radius: 35, 
         value: '50円', 
         color: '#C0C0C0',
-        image: './assets/images/50yen.png'
+        image: './50yen.png'
     },
     '100': { 
         radius: 40, 
         value: '100円', 
         color: '#DAA520',
-        image: './assets/images/100yen.png'
+        image: './100yen.png'
     },
     '500': { 
         radius: 45, 
         value: '500円', 
         color: '#C0C0C0',
-        image: './assets/images/500yen.png'
+        image: './500yen.png'
     },
     '1000': { 
         radius: 50, 
         value: '1000円', 
         color: '#98FB98',
-        image: './assets/images/1000yen.png'
+        image: './1000yen.png'
     },
     '5000': { 
         radius: 55, 
         value: '5000円', 
         color: '#BA55D3',
-        image: './assets/images/5000yen.png'
+        image: './5000yen.png'
     },
     '10000': { 
         radius: 60, 
         value: '10000円', 
         color: '#4169E1',
-        image: './assets/images/10000yen.png'
+        image: './10000yen.png'
     }
 };
 
-// 画像読み込み関数
+// 画像読み込み関数を修正
 const loadImage = (src) => {
-    console.log(`画像の読み込みを開始: ${src}`);
     return new Promise((resolve, reject) => {
         const img = new Image();
+        console.log(`画像読み込み開始: ${src}`);
+        
         img.onload = () => {
-            console.log(`画像の読み込み成功: ${src}`);
+            console.log(`画像読み込み成功: ${src}`);
             resolve(img);
         };
+        
         img.onerror = (e) => {
-            console.error(`画像の読み込み失敗: ${src}`, e);
+            console.error(`画像読み込み失敗: ${src}`, e);
             reject(e);
         };
+
+        // file://プロトコルを削除し、相対パスで読み込む
         img.src = src;
     });
 };
@@ -79,36 +83,40 @@ script.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min
 document.head.appendChild(script);
 
 script.onload = async () => {
-    // 画像の事前読み込み
+    // 画像の事前読み込みを修正
     const coinImages = {};
     try {
         for (const [key, coin] of Object.entries(COINS)) {
+            console.log(`${coin.value}の画像読み込みを試行...`);
             coinImages[key] = await loadImage(coin.image);
+            console.log(`${coin.value}の画像読み込み完了`);
         }
         console.log('全ての画像の読み込みが完了しました');
     } catch (error) {
-        console.warn('画像の読み込みに失敗しました。フォールバック色を使用します:', error);
+        console.warn('画像の読み込みに失敗しました:', error);
     }
 
     // コインを作成する関数を修正
     function createCoin(x, y, value) {
         const coin = COINS[value];
         const options = {
-            restitution: 0.3,      // 反発係数を下げる
-            friction: 0.8,         // 摩擦を増やす
-            density: 0.002,        // 密度を調整
+            restitution: 0.3,
+            friction: 0.8,
+            density: 0.002,
             label: value.toString(),
             render: {}
         };
 
-        if (coinImages[value]) {
+        const img = coinImages[value];
+        if (img && img.complete) {
             options.render.sprite = {
-                texture: coin.image,
-                xScale: coin.radius * 2 / coinImages[value].width,
-                yScale: coin.radius * 2 / coinImages[value].height
+                texture: img.src,  // coin.imageではなくimg.srcを使用
+                xScale: (coin.radius * 2) / img.width,
+                yScale: (coin.radius * 2) / img.height
             };
         } else {
             options.render.fillStyle = coin.color;
+            console.warn(`${coin.value}の画像が利用できないためフォールバック色を使用`);
         }
 
         return Bodies.circle(x, y, coin.radius, options);
